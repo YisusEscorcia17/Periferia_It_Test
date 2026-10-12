@@ -105,3 +105,14 @@ describe("GUI modal", () => {
     expect(existsSync(join(outDir, "ENVIO-SIMULADO.md"))).toBe(false)
   })
 })
+
+describe("enlaces de descarga en el chat", () => {
+  it("tras generar el formulario aparece un enlace de descarga", async () => {
+    const { doc, enviar } = await abrir([
+      { toolCalls: [{ id: "g1", name: "proveedor_generar_formulario", args: { caso: "co-industrias-delta" } }] },
+      { text: "Listo" },
+    ])
+    enviar("genera")
+    await esperar(() => doc.querySelector("#historial a[href='/api/archivos/co-industrias-delta/formulario.xlsx']") !== null)
+  })
+})

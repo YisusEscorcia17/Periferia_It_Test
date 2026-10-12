@@ -32,6 +32,16 @@ export function herramientasFalsas(): Herramientas {
         return JSON.stringify({ ok: true, data: { ruta: dir } })
       },
     },
+    proveedor_generar_formulario: {
+      description: "genera el formulario del caso (falso)",
+      args: { caso: z.string().describe("caso") },
+      async execute({ caso }: { caso: string }, ctx: { directory: string }) {
+        const dir = join(ctx.directory, caso)
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(join(dir, "formulario.xlsx"), "xlsx falso")
+        return JSON.stringify({ ok: true, data: { ruta: `out/${caso}/formulario.xlsx`, formato: "xlsx" } })
+      },
+    },
     proveedor_leer_solicitud: {
       description: "lee solicitud",
       args: { caso: z.string().describe("caso") },

@@ -38,6 +38,23 @@
     historial.append(d)
   }
 
+  // Enlaces para descargar los archivos generados (formulario, valores del portal, paquete).
+  const enlacesDeDescarga = (descargas) => {
+    const caja = document.createElement("div")
+    caja.className = "descargas"
+    const titulo = document.createElement("span")
+    titulo.textContent = "Archivos generados:"
+    caja.append(titulo)
+    for (const d of descargas) {
+      const enlace = document.createElement("a")
+      enlace.href = d.url
+      enlace.download = d.nombre.replace(/^paquete\//, "")
+      enlace.textContent = d.nombre
+      caja.append(enlace)
+    }
+    historial.append(caja)
+  }
+
   async function llamar(cuerpo) {
     $("#pensando").hidden = false
     try {
@@ -50,6 +67,7 @@
       const r = await res.json()
       for (const t of r.toolCalls ?? []) llamadaHerramienta(t)
       burbuja("assistant", r.reply, r.needsConfirmation ? "confirmacion" : "")
+      if (r.descargas?.length) enlacesDeDescarga(r.descargas)
       if (r.needsConfirmation && r.actionId) {
         pendiente = { actionId: r.actionId, resuelto: false }
         $("#conf-detalle").textContent = `¿Simular el envío del caso ${r.caso} al portal del cliente?`

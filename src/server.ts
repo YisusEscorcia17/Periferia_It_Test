@@ -1,4 +1,5 @@
 import express from "express"
+import { existsSync } from "node:fs"
 import { appendFile, mkdir, stat } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { z } from "zod"
@@ -77,6 +78,32 @@ export function crearApp(op: OpcionesApp) {
     if (!s) return res.status(404).json({ error: "sesión no encontrada" })
     res.json({ messages: s.mensajes.filter((m) => m.role === "user" || (m.role === "assistant" && !("toolCalls" in m))) })
   })
+
+  // Archivos que se pueden descargar (lista blanca). Nunca se sirve nada fuera de out/<caso>/.
+  const DESCARGABLES = ["formulario.xlsx", "formulario.pdf", "valores-portal.md", "ENVIO-SIMULADO.md"]
+  const DESCARGABLES_PAQUETE = ["formulario.xlsx", "formulario.pdf", "valores-portal.md", "checklist.md", "borrador-correo.md"]
+
+  const enviarArchivo = (res: express.Response, ruta: string, nombre: string) => {
+    if (!existsSync(ruta)) return res.status(404).json({ error: "archivo no encontrado" })
+    res.download(ruta, nombre)
+  }
+
+  app.get("/api/archivos/:caso/:nombre", (req, res) => {
+    if (!CASO.test(req.params.caso) || !DESCARGABLES.includes(req.params.nombre)) return res.status(404).json({ error: "archivo no disponible" })
+    enviarArchivo(res, join(outDir, req.params.caso, req.params.nombre), req.params.nombre)
+  })
+
+  app.get("/api/archivos/:caso/paquete/:nombre", (req, res) => {
+    if (!CASO.test(req.params.caso) || !DESCARGABLES_PAQUETE.includes(req.params.nombre)) return res.status(404).json({ error: "archivo no disponible" })
+    enviarArchivo(res, join(outDir, req.params.caso, "paquete", req.params.nombre), req.params.nombre)
+  })
+
+  // Enlaces de descarga de los archivos que existen para el caso del turno.
+  const descargasDelCaso = (caso: string) => {
+    const enRaiz = DESCARGABLES.filter((n) => existsSync(join(outDir, caso, n))).map((nombre) => ({ nombre, url: `/api/archivos/${caso}/${nombre}` }))
+    const enPaquete = DESCARGABLES_PAQUETE.filter((n) => existsSync(join(outDir, caso, "paquete", n))).map((nombre) => ({ nombre: `paquete/${nombre}`, url: `/api/archivos/${caso}/paquete/${nombre}` }))
+    return [...enRaiz, ...enPaquete]
+  }
 
   app.post("/api/chat", async (req, res) => {
     const parsed = Body.safeParse(req.body)
@@ -160,7 +187,10 @@ export function crearApp(op: OpcionesApp) {
       }
       // La sesión conserva las llamadas y resultados del turno para que el modelo pueda citarlos después.
       s.mensajes = [...r.mensajes, { role: "assistant", content: reply }]
-      res.json({ reply, toolCalls: r.toolCalls, needsConfirmation, tokensSesion: s.tokens, ...(id ? { actionId: id, caso: solicitado } : {}) })
+      // Descargas del caso de la última herramienta de caso ejecutada en este turno.
+      const casoDelTurno = [...r.toolCalls].reverse().map((t) => t.args.caso).find((c): c is string => typeof c === "string" && CASO.test(c))
+      const descargas = casoDelTurno ? descargasDelCaso(casoDelTurno) : []
+      res.json({ reply, toolCalls: r.toolCalls, needsConfirmation, tokensSesion: s.tokens, descargas, ...(id ? { actionId: id, caso: solicitado } : {}) })
     } catch (e) {
       await log({ evento: "error", sessionId, error: e instanceof Error ? e.message : "desconocido" })
       res.json({ reply: "Ocurrió un error interno; puedes seguir escribiendo.", toolCalls: [], needsConfirmation: false })

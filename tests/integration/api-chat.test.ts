@@ -1,4 +1,5 @@
 import { mkdtemp } from "node:fs/promises"
+import { mkdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import request from "supertest"
@@ -122,5 +123,42 @@ describe("tope global de tokens (enlace público)", () => {
     expect(r1.body.reply).toBe("uno")
     const r2 = await request(app).post("/api/chat").send({ sessionId: "nueva-sesion", message: "otra" })
     expect(r2.body.reply).toMatch(/límite global de tokens/i)
+  })
+})
+
+describe("descarga de archivos generados (PRD 9.3: probar desde un link)", () => {
+  it("descarga formulario.xlsx del caso cuando existe", async () => {
+    const { app, outDir } = await nueva([{ text: "x" }])
+    mkdirSync(join(outDir, "pa-logistica-istmo"), { recursive: true })
+    writeFileSync(join(outDir, "pa-logistica-istmo", "formulario.xlsx"), "contenido")
+    const r = await request(app).get("/api/archivos/pa-logistica-istmo/formulario.xlsx")
+    expect(r.status).toBe(200)
+    expect(r.headers["content-disposition"]).toMatch(/attachment.*formulario\.xlsx/)
+  })
+
+  it("descarga los archivos del paquete con la ruta paquete/<archivo>", async () => {
+    const { app, outDir } = await nueva([{ text: "x" }])
+    mkdirSync(join(outDir, "pa-logistica-istmo", "paquete"), { recursive: true })
+    writeFileSync(join(outDir, "pa-logistica-istmo", "paquete", "checklist.md"), "# c")
+    const r = await request(app).get("/api/archivos/pa-logistica-istmo/paquete/checklist.md")
+    expect(r.status).toBe(200)
+  })
+
+  it("rechaza archivos fuera de la lista blanca y rutas con traversal", async () => {
+    const { app, outDir } = await nueva([{ text: "x" }])
+    mkdirSync(join(outDir, "pa-logistica-istmo"), { recursive: true })
+    writeFileSync(join(outDir, "pa-logistica-istmo", "config.json"), "{}")
+    expect((await request(app).get("/api/archivos/pa-logistica-istmo/config.json")).status).toBe(404)
+    expect((await request(app).get("/api/archivos/..%2F..%2Fetc/formulario.xlsx")).status).toBe(404)
+    expect((await request(app).get("/api/archivos/pa-logistica-istmo/formulario.pdf")).status).toBe(404)
+  })
+
+  it("el chat devuelve descargas cuando el turno generó un formulario", async () => {
+    const { app } = await nueva([
+      { toolCalls: [{ id: "g1", name: "proveedor_generar_formulario", args: { caso: "co-industrias-delta" } }] },
+      { text: "Listo" },
+    ])
+    const r = await request(app).post("/api/chat").send({ sessionId: "dl", message: "genera" })
+    expect(r.body.descargas).toEqual([{ nombre: "formulario.xlsx", url: "/api/archivos/co-industrias-delta/formulario.xlsx" }])
   })
 })
