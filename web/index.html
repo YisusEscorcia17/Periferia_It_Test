@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agente de registro de proveedores</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header><h1>Registro de proveedores</h1><span id="estado" aria-live="polite"></span></header>
+    <section id="historial" aria-live="polite"></section>
+    <div id="pensando" hidden>Pensando…</div>
+    <form id="form">
+      <input id="mensaje" autocomplete="off" placeholder="Escribe tu solicitud…" required>
+      <button type="submit">Enviar</button>
+    </form>
+  </main>
+  <dialog id="confirmacion" aria-labelledby="conf-titulo">
+    <h2 id="conf-titulo">Confirmar envío</h2>
+    <p id="conf-detalle"></p>
+    <div class="acciones">
+      <button id="cancelar" type="button">Cancelar</button>
+      <button id="aceptar" type="button">Aceptar</button>
+    </div>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>

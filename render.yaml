@@ -1,0 +1,29 @@
+# Blueprint de Render. El repositorio raíz es reto-01 (Periferia_It_Test).
+# La clave ANTHROPIC_API_KEY se carga en el panel de Render (sync: false); nunca va en este archivo.
+services:
+  - type: web
+    name: reto-01-proveedor
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: claude-haiku-5-5
+      - key: LLM_DISABLED
+        value: "false"
+      - key: MAX_ITER
+        value: "25"
+      - key: LLM_TIMEOUT_MS
+        value: "30000"
+      - key: TOKENS_SESION
+        value: "50000"
+      - key: TOKENS_GLOBALES
+        value: "2000000"
+      - key: FECHA_REFERENCIA
+        value: "2026-09-03"

@@ -1,0 +1,11 @@
+# Arranque local con Docker: docker compose up --build
+# La clave se lee de .env (no se copia a la imagen; ver .dockerignore).
+services:
+  reto01:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./out:/app/out

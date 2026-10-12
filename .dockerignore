@@ -1,0 +1,6 @@
+node_modules
+out
+out-test
+.env
+.git
+*.tmp.ts
