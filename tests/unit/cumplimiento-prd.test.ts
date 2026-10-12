@@ -163,3 +163,10 @@ describe("HU-5: archivo que existe pero no se puede leer (p. ej. permisos) sin t
     expect(salida.error).not.toMatch(/EACCES|permission denied|open '|[A-Za-z]:\|\/Users\//)
   })
 })
+
+describe("HU-1: al elegir la solicitud el agente devuelve país, cliente y formato de salida", () => {
+  it("el prompt exige decir país, cliente y formato en la primera línea tras leer la solicitud", () => {
+    const prompt = readFileSync(join(raiz, "agent/prompt.md"), "utf8")
+    expect(prompt).toMatch(/primera línea[\s\S]*país[\s\S]*cliente[\s\S]*formato de salida/i)
+  })
+})
