@@ -42,6 +42,25 @@ Todas están documentadas en `.env.example`. La clave **solo** se lee del entorn
 
 Los campos faltantes nunca se inventan: quedan vacíos en xlsx y marcados `(pendiente)` en pdf.
 
+## API
+
+Diseño libre documentado (PRD 6.4). Todas las respuestas son JSON.
+
+| Método | Ruta | Cuerpo | Respuesta |
+|---|---|---|---|
+| `POST` | `/api/chat` | `{ sessionId, message }` | `{ reply, toolCalls[], needsConfirmation, actionId?, caso?, tokensSesion }` |
+| `POST` | `/api/chat` | `{ sessionId, confirmed, actionId }` | Acepta (`confirmed: true`) o cancela (`false`) un envío pendiente |
+| `GET` | `/api/sessions/:id` | — | `{ messages[] }` con el historial de texto de la sesión |
+| `GET` | `/api/health` | — | `{ ok, provider, model }`, sin claves |
+
+Ejemplo:
+
+```bash
+curl -X POST https://reto-01-proveedor.onrender.com/api/chat \
+  -H "content-type: application/json" \
+  -d '{"sessionId":"demo-1","message":"Procesa el caso ec-corp-andina y no envíes nada."}'
+```
+
 ## Demo sin modelo
 
 Ejecuta las herramientas directamente sobre todos los casos de `fixtures/reto-01/casos/`, sin clave de ningún proveedor:
@@ -115,4 +134,8 @@ Notas:
 
 ## Enlace de prueba
 
-URL pública: pendiente de confirmar tras el despliegue en Render. Si no está activa el día de la defensa, la prueba es en local con `npm run dev` (penalización de -10 asumida, según el PRD).
+**URL pública:** https://reto-01-proveedor.onrender.com
+
+- Sin clave de acceso: el enlace es público.
+- Primera petición tras un rato sin uso: tarda unos segundos (plan gratuito).
+- Si el enlace no respondiera el día de la defensa, la prueba se hace en local con `npm run dev` (penalización de -10 asumida, según el PRD).

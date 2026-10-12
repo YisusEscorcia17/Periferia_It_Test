@@ -139,7 +139,7 @@ Separación que evaluamos:
 | Costo: tope de tokens configurable | Hecho | Tabla de precios para el costo en dólares. |
 | Seguridad: clave solo en entorno, sin shell | Hecho | Revisión externa. |
 | TypeScript sin `any` | Hecho | Verificado con búsqueda en `src/`, `tests/` y `demo.ts`. |
-| Enlace público de prueba (9.3) | Preparado | `render.yaml` listo (build, health check, variables). Falta conectar el repositorio en Render y cargar `ANTHROPIC_API_KEY`. La instalación de producción (`npm ci --omit=dev`) se probó en una copia limpia. |
+| Enlace público de prueba (9.3) | Hecho | https://reto-01-proveedor.onrender.com, desplegado desde `render.yaml`. Probado en vivo: sección 11 del PRD, confirmación con `actionId` y reuso rechazado. |
 | Bonus: módulo reutilizable `modulo/` (9.4) | Hecho | Generado desde las fuentes de la app; una prueba impide que diverja. |
 | Entrega en repositorio o zip (9.5) | Pendiente | Inicializar git con historial o generar `reto-01-<apellido>.zip` sin `node_modules/`, `out/` ni `.env`. |
 
@@ -209,4 +209,4 @@ Cada control del PRD con el mecanismo que lo implementa y la prueba que lo verif
 
 ## Anexo B. Decisión sobre el enlace
 
-Hay enlace público en Render (ver `README.md`). Si el día de la defensa no está activo, la defensa se hace en local con `npm run dev` y se asume la penalización de -10 que indica el PRD.
+El enlace público es https://reto-01-proveedor.onrender.com. Si el día de la defensa no está activo, la defensa se hace en local con `npm run dev` y se asume la penalización de -10 que indica el PRD.

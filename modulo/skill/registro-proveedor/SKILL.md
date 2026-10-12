@@ -20,6 +20,7 @@ El proveedor que se registra es siempre **Periferia IT Group S.A.S.** (Colombia,
 - El país de la solicitud (`solicitud.pais`) **no** es motivo para detener el proceso. Solo afecta a RN1 (identificador tributario) y al estado `requiere_confirmacion`.
 - No compares la razón social, el país o los datos de contacto del maestro contra el cliente: esa comparación no aplica.
 - Si una herramienta devuelve un dato, úsalo tal cual; si falta, es faltante.
+- Ejemplo: en `ec-corp-andina` el campo País del formulario sale **CO** porque el proveedor es colombiano. Es correcto. Ciudad, teléfono, banco y correo también son del proveedor. No los listes como discrepancia ni pidas revisarlos por ser de otro país.
 
 ## Herramientas
 
