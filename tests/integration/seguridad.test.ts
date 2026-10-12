@@ -56,3 +56,15 @@ describe("seguridad", () => {
     expect(pasos.every((p) => p.ok === false)).toBe(true)
   })
 })
+
+describe("rutas de salida relativas (sin rutas absolutas en respuestas)", () => {
+  afterAll(() => rmSync(join(raiz, outRel), { recursive: true, force: true }))
+
+  it("las herramientas devuelven rutas relativas al proyecto, nunca la ruta absoluta de la máquina", async () => {
+    const pasos = await correrCaso("pa-logistica-istmo", cfg, raiz)
+    const texto = JSON.stringify(pasos)
+    expect(texto).not.toContain(raiz.split(String.fromCharCode(92)).join("/"))
+    expect(texto).not.toContain(raiz)
+    expect(texto).toContain(`${outRel}/pa-logistica-istmo/valores-portal.md`)
+  })
+})

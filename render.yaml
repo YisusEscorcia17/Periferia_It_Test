@@ -24,6 +24,6 @@ services:
       - key: TOKENS_SESION
         value: "50000"
       - key: TOKENS_GLOBALES
-        value: "2000000"
+        value: "8000000"
       - key: FECHA_REFERENCIA
         value: "2026-09-03"

@@ -47,3 +47,11 @@ describe("cargarConfigPortal", () => {
     }
   })
 })
+
+describe("presupuesto del enlace público (crédito de 5 USD)", () => {
+  it("el tope global por defecto cuesta como máximo 4 USD (de 5 USD de crédito) a la tarifa de salida, 0.50 USD por millón", () => {
+    const cfg = cargarConfigPortal({})
+    const costoMaximoUsd = (cfg.topes.tokensGlobales * 0.5) / 1_000_000
+    expect(costoMaximoUsd).toBeLessThanOrEqual(4)
+  })
+})

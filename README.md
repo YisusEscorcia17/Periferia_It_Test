@@ -88,7 +88,7 @@ demo.ts                          herramientas sin modelo
 docker compose up --build    # lee .env; la clave no entra en la imagen (ver .dockerignore)
 ```
 
-La imagen se construyó sin probar en esta máquina porque el daemon de Docker no estaba activo. La instalación de producción (`npm ci --omit=dev`) sí se probó en una copia limpia.
+Probado: la imagen se construye, arranca, sirve `/api/health` y el front, y no incluye `.env` ni `node_modules` del equipo.
 
 ## Módulo reutilizable (`modulo/`)
 
@@ -111,8 +111,8 @@ El archivo `render.yaml` describe el servicio (build, arranque, health check en 
 Notas:
 - El plan `free` se duerme tras un rato sin tráfico; la primera petición tarda más. Para la defensa, abre el enlace unos minutos antes o usa un plan que no se duerma.
 - `out/` se borra al redesplegar (el disco es efímero). Las sesiones viven en memoria.
-- Como el enlace es público, `TOKENS_GLOBALES` (2 000 000 por defecto) corta el gasto total de la clave cuando se agota el presupuesto.
+- Como el enlace es público, `TOKENS_GLOBALES` (8 000 000 por defecto) corta el gasto total de la clave. Con la tarifa de salida de $0.50 por millón, el peor caso es $4 de los $5 de crédito; el resto queda de margen. El tope real es también el límite mensual que configures en la consola de Anthropic (Plans & Billing).
 
 ## Enlace de prueba
 
-Pendiente de despliegue. Mientras tanto, el agente corre en local con `npm run dev` o `docker compose up`.
+URL pública: pendiente de confirmar tras el despliegue en Render. Si no está activa el día de la defensa, la prueba es en local con `npm run dev` (penalización de -10 asumida, según el PRD).

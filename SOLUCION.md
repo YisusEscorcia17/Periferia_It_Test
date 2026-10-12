@@ -67,6 +67,8 @@ Separación que evaluamos:
 
 **Precio.** Según fuentes secundarias de octubre de 2026 ([MarkTechPost](https://www.marktechpost.com/2026/10/07/anthropic-releases-claude-haiku-5-5-a-small-model-with-1m-context-priced-at-0-10-per-million-input-tokens/) y [VentureBeat](https://venturebeat.com/technology/anthropic-launches-claude-haiku-5-5-with-90-api-price-reduction-matching-gpt-6-luna)), `claude-haiku-5-5` cuesta $0.10 por millón de tokens de entrada y $0.50 por millón de salida con prompts de hasta 100 K tokens. No pude confirmarlo en la página oficial de precios.
 
+**Presupuesto.** Crédito disponible: $5. El tope global `TOKENS_GLOBALES` es 8 000 000 tokens: al peor caso (tarifa de salida, $0.50 por millón) cuesta $4 como máximo, y deja $1 de margen. El límite real debe configurarse también en la consola de Anthropic.
+
 **Costo estimado por caso.** Con esa tarifa, el caso PA completo (≈ 27 K tokens) cuesta como máximo ≈ $0.013 (si todo se cobra a la tarifa de salida) y menos de $0.003 si se cobra todo a la de entrada. Con un presupuesto de $5 alcanzan cientos de casos. El límite `TOKENS_SESION` (50 000 por defecto) acota el gasto de cada sesión.
 
 ## 5. Diseño del portal web (PRD 7.4)
@@ -171,5 +173,40 @@ Separación que evaluamos:
 | Datos del maestro desactualizados. | Supuesto explícito (PRD 10). | Un dueño del dato y fecha de última actualización visible. |
 | Un soporte vencido se envía por error. | Bloquea `listo_para_firma`. | Revisión humana obligatoria antes de firmar. |
 | Clave expuesta. | Solo en entorno; nunca en respuestas ni logs (probado). | Gestor de secretos y rotación periódica. |
-| Enlace público abierto a cualquiera gasta la clave. | Tope global de tokens (`TOKENS_GLOBALES`, 2 000 000 por defecto) además del tope por sesión; el servicio responde con pausa al agotarlo. | Autenticación con clave de acceso y presupuesto con alertas en el proveedor. |
+| Enlace público abierto a cualquiera gasta la clave. | Tope global de tokens (`TOKENS_GLOBALES`, 8 000 000 por defecto) además del tope por sesión; el servicio responde con pausa al agotarlo. | Autenticación con clave de acceso y presupuesto con alertas en el proveedor. |
 | Clave de OpenAI expuesta durante el desarrollo. | Se usó solo para pruebas; se reemplazó por Anthropic. | Revocar la clave antigua en la consola del proveedor. |
+
+## Anexo A. Matriz de controles
+
+Cada control del PRD con el mecanismo que lo implementa y la prueba que lo verifica (`npm test`).
+
+| Control | Mecanismo | Prueba |
+|---|---|---|
+| CA1 Tope de iteraciones | `MAX_ITER` en `ciclo.ts`; al alcanzarlo devuelve parciales y faltantes | `ciclo-agente.test.ts` (corta en el tope) |
+| CA2 Solo valores de herramientas | Prompt + verificación de identificadores numéricos contra salidas de herramientas de toda la sesión | `ciclo-agente.test.ts` (no verificados / sí verificados / turnos anteriores) |
+| CA3 Confirmación explícita | `actionId` de un uso y vigente en el turno siguiente; el modelo no ve `confirmado` | `api-chat.test.ts` (modelo no confirma, reuso rechazado), `gui-modal.test.ts` (Aceptar crea, Cancelar y Esc no) |
+| CA4 Llamadas visibles y registradas | Historial del chat y `log.jsonl` | `armar-paquete.test.ts`, `demo-xlsx.test.ts` (línea de generación) |
+| CA5 Errores claros, sesión viva | Clasificación de errores del proveedor (timeout, 429, 401, 5xx) | `ciclo-agente.test.ts` (429, timeout), `api-chat.test.ts` (sesión sigue) |
+| RN1 Identificador tributario por país | `MAPA` y `requiere_confirmacion` fuera de CO; etiquetas ambiguas | `mapear-campos.test.ts` |
+| RN2 Datos bancarios | Solo si la plantilla los pide; borrador sin banco | `generar-xlsx.test.ts` (HN sin banco, CO con banco), `armar-paquete.test.ts` (borrador sin banco) |
+| RN3 Vencido/ausente bloquea, faltante no | `listo_para_firma` solo con soportes; faltantes en checklist | `armar-paquete.test.ts` |
+| RN4 Confirmación antes de acción externa | `proveedor_simular_envio` exige `confirmado=true` | `simular-envio.test.ts`, `cableado.test.ts` |
+| RN5 Registro por ejecución | `registrar()` en `BaseTool` escribe `log.jsonl` | `armar-paquete.test.ts`, `demo-xlsx.test.ts`, `demo-pdf.test.ts` |
+| HU-1 Leer solicitud | `proveedor_leer_solicitud` (plantilla de campos o de celdas) | `leer-solicitud.test.ts` |
+| HU-2 Mapear al maestro | Estados `llenos` / `faltantes` / `requiere_confirmacion`; glosario | `mapear-campos.test.ts` |
+| HU-3 P0 Excel | Escritura en hoja y celda de `plantilla-celdas.json` | `generar-xlsx.test.ts`, `demo-xlsx.test.ts` |
+| HU-3 P1 PDF | Etiquetas en orden de `plantilla-campos.json`, faltantes `(pendiente)` | `generar-pdf.test.ts`, `demo-pdf.test.ts` |
+| HU-3 P2 Portal | `valores-portal.md` | `generar-portal.test.ts`, `demo-pa.test.ts` |
+| HU-4 Paquete para firma | Checklist, copias, formulario, borrador | `armar-paquete.test.ts`, `demo-xlsx.test.ts` |
+| HU-5 Manejo de errores | `{ok,data}` / `{ok,error}` sin lanzar; caso inexistente y plantilla corrupta | `contrato-tools.test.ts`, `leer-solicitud.test.ts`, `demo-todos.test.ts` |
+| Seguridad: clave solo en entorno | `.env` ignorado; clave no aparece en respuestas ni en `out/` | `seguridad.test.ts` |
+| Seguridad: sin shell, sin rutas absolutas | Escaneo del código y de los artefactos | `seguridad.test.ts` |
+| Seguridad: anti-XSS, CSP, path traversal | Render como texto, `default-src 'self'`, slug de caso | `gui-modal.test.ts`, `contrato-tools.test.ts`, `seguridad.test.ts` |
+| Costo: tope por sesión y global | `TOKENS_SESION` y `TOKENS_GLOBALES` | `api-chat.test.ts` |
+| Determinismo | Fecha de referencia fija; `out/` se limpia; xlsx y pdf sin fechas internas | `demo-todos.test.ts` (y verificación manual de dos corridas: contenido idéntico) |
+| Configuración documentada | Cada variable que lee la app está en `.env.example` | `config.test.ts` |
+| Bonus modulo reutilizable | Mismas herramientas y textos que la app | `modulo.test.ts` |
+
+## Anexo B. Decisión sobre el enlace
+
+Hay enlace público en Render (ver `README.md`). Si el día de la defensa no está activo, la defensa se hace en local con `npm run dev` y se asume la penalización de -10 que indica el PRD.

@@ -3,25 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agente de registro de proveedores</title>
+  <title>Registro de proveedores · Periferia IT</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
-    <header><h1>Registro de proveedores</h1><span id="estado" aria-live="polite"></span></header>
-    <section id="historial" aria-live="polite"></section>
-    <div id="pensando" hidden>Pensando…</div>
-    <form id="form">
-      <input id="mensaje" autocomplete="off" placeholder="Escribe tu solicitud…" required>
+    <header class="cabecera">
+      <div class="marca">
+        <span class="logo" aria-hidden="true">RP</span>
+        <div>
+          <h1>Registro de proveedores</h1>
+          <p class="subtitulo">Llena formularios de alta de proveedor a partir de nuestro repositorio.</p>
+        </div>
+      </div>
+      <span id="estado" class="estado" aria-live="polite"></span>
+    </header>
+
+    <section id="bienvenida" class="bienvenida" aria-labelledby="casos-titulo">
+      <h2 id="casos-titulo">Elige una solicitud</h2>
+      <p>Cada caso se procesa con el mismo flujo: leer la solicitud, mapear campos, generar el formulario y armar el paquete. Nada se envía sin tu confirmación.</p>
+      <div id="casos" class="casos"></div>
+    </section>
+
+    <section id="historial" class="historial" aria-live="polite"></section>
+    <div id="pensando" class="pensando" hidden><span></span><span></span><span></span> Procesando…</div>
+
+    <form id="form" class="entrada">
+      <input id="mensaje" autocomplete="off" placeholder="Escribe el identificador del caso, por ejemplo pa-logistica-istmo" required>
       <button type="submit">Enviar</button>
     </form>
   </main>
+
   <dialog id="confirmacion" aria-labelledby="conf-titulo">
     <h2 id="conf-titulo">Confirmar envío</h2>
     <p id="conf-detalle"></p>
+    <p class="nota">Es una simulación: se crea <code>ENVIO-SIMULADO.md</code> y no se envía ningún correo.</p>
     <div class="acciones">
-      <button id="cancelar" type="button">Cancelar</button>
-      <button id="aceptar" type="button">Aceptar</button>
+      <button id="cancelar" type="button" class="secundario">Cancelar</button>
+      <button id="aceptar" type="button">Aceptar y simular envío</button>
     </div>
   </dialog>
   <script src="app.js"></script>

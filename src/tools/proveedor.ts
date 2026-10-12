@@ -1,4 +1,4 @@
-import { join } from "node:path"
+import { join, relative, sep } from "node:path"
 import ExcelJS from "exceljs"
 import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib"
 import { z } from "zod"
@@ -126,8 +126,11 @@ async function generarXlsx(ctx: ToolContext, config: ConfigPortal, caso: string,
   }
   const ruta = join(ctx.directory, config.rutas.out, caso, "formulario.xlsx")
   ctx.fs.escribirBinario(ruta, new Uint8Array(await libro.xlsx.writeBuffer()))
-  return { ruta, formato: "xlsx" }
+  return { ruta: relativa(ctx, ruta), formato: "xlsx" }
 }
+
+// Rutas de salida relativas al proyecto: nunca la ruta absoluta de la máquina o del servidor.
+const relativa = (ctx: ToolContext, ruta: string) => relative(ctx.directory, ruta).split(sep).join("/")
 
 const textoDeValor = (v: unknown): string => (typeof v === "object" && v !== null ? JSON.stringify(v) : String(v))
 
@@ -194,7 +197,7 @@ async function generarPdf(ctx: ToolContext, config: ConfigPortal, caso: string, 
 
   const ruta = join(ctx.directory, config.rutas.out, caso, "formulario.pdf")
   ctx.fs.escribirBinario(ruta, await doc.save())
-  return { ruta, formato: "pdf" }
+  return { ruta: relativa(ctx, ruta), formato: "pdf" }
 }
 
 // Genera valores-portal.md (tabla campo/valor/fuente), formulario.xlsx o formulario.pdf según el formato del caso.
@@ -230,7 +233,7 @@ export class GenerarPortal extends BaseTool<typeof SchemaGenerar> {
 
     const ruta = join(ctx.directory, this.config.rutas.out, args.caso, "valores-portal.md")
     ctx.fs.escribir(ruta, contenido)
-    return { ruta, formato }
+    return { ruta: relativa(ctx, ruta), formato }
   }
 }
 
@@ -315,7 +318,7 @@ export class ArmarPaquete extends BaseTool<typeof SchemaCaso> {
       ].join("\n"),
     )
 
-    return { ruta: paqueteDir, listo_para_firma: listo, checklist: checklist.map(({ tipo, estado }) => ({ tipo, estado })), campos }
+    return { ruta: relativa(ctx, paqueteDir), listo_para_firma: listo, checklist: checklist.map(({ tipo, estado }) => ({ tipo, estado })), campos }
   }
 }
 
@@ -334,6 +337,6 @@ export class SimularEnvio extends BaseTool<typeof SchemaEnvio> {
     }
     const ruta = join(ctx.directory, this.config.rutas.out, args.caso, "ENVIO-SIMULADO.md")
     ctx.fs.escribir(ruta, ["# Envío simulado", "", `Caso: ${args.caso}`, `Fecha: ${ctx.clock.hoy()}`, "", "Simulación local: no se envió ningún correo.", ""].join("\n"))
-    return { ruta }
+    return { ruta: relativa(ctx, ruta) }
   }
 }

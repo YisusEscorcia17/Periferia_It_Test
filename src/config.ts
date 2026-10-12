@@ -53,7 +53,7 @@ export function cargarConfigPortal(env: NodeJS.ProcessEnv = process.env): Config
       out: env.PROVEEDOR_RUTA_OUT || "out",
       glosario: env.PROVEEDOR_RUTA_GLOSARIO || "fixtures/reto-01/glosario-campos.json",
     },
-    topes: { tokensSesion: num(env.TOKENS_SESION, 50000), tokensGlobales: num(env.TOKENS_GLOBALES, 2000000) },
+    topes: { tokensSesion: num(env.TOKENS_SESION, 50000), tokensGlobales: num(env.TOKENS_GLOBALES, 8000000) },
     fechaReferencia: env.FECHA_REFERENCIA || "2026-09-03",
   }
 }

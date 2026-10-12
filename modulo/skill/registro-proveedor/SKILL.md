@@ -4,6 +4,15 @@ description: Proceso de registro de proveedor de Periferia: herramientas, reglas
 ---
 # Proceso de registro de proveedor
 
+## Casos disponibles
+
+| Caso | Formato | País del cliente |
+|---|---|---|
+| `pa-logistica-istmo` | portal (valores copiables) | Panamá |
+| `ec-corp-andina` | pdf | Ecuador |
+| `co-industrias-delta` | xlsx | Colombia |
+| `hn-agroexport-sula` | xlsx | Honduras |
+
 ## Quién es el proveedor
 
 El proveedor que se registra es siempre **Periferia IT Group S.A.S.** (Colombia, NIT del maestro). Los clientes (`solicitud.cliente`: Logística del Istmo, Corporación Andina, etc.) son quienes piden el registro. Los campos del formulario describen a Periferia, no al cliente.
