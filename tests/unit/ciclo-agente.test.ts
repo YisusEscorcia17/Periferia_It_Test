@@ -120,3 +120,20 @@ describe("memoria del turno: fuentes de turnos anteriores (CA2 a nivel sesión)"
     expect(r.mensajes.map((m) => m.role)).toEqual(["user", "assistant", "tool"])
   })
 })
+
+describe("CA2 reforzado: correos y URLs también deben salir de herramientas", () => {
+  const conCorreo = { proveedor_mapear_campos: { description: "mapea", args: {}, async execute() { return JSON.stringify({ ok: true, data: { llenos: [{ valor: "lgomez@periferia-ficticia.com" }, { valor: "https://www.periferia-ficticia.com" }] } }) } } }
+  const pedir = { toolCalls: [{ id: "c1", name: "proveedor_mapear_campos", args: {} }] }
+
+  it("un correo inventado se marca como no verificado", async () => {
+    const adapter = guionAdaptador([pedir, { text: "Escribe a otro@ejemplo.com." }])
+    const r = await ejecutarTurno({ adapter, tools: conCorreo, maxIter: 5, ctx }, [{ role: "user", content: "x" }])
+    expect(r.reply).toMatch(/no verificados.*otro@ejemplo\.com/)
+  })
+
+  it("un correo y una URL que sí salieron de herramientas no se marcan", async () => {
+    const adapter = guionAdaptador([pedir, { text: "Correo lgomez@periferia-ficticia.com y web https://www.periferia-ficticia.com." }])
+    const r = await ejecutarTurno({ adapter, tools: conCorreo, maxIter: 5, ctx }, [{ role: "user", content: "x" }])
+    expect(r.reply).not.toMatch(/no verificados/)
+  })
+})

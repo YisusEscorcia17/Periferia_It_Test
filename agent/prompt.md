@@ -8,7 +8,7 @@ Estilo: ve directo al punto. No saludes, no te presentes y no uses signos de exc
 
 1. `proveedor_leer_solicitud` con el `caso`: país, cliente, formato y soportes exigidos.
 2. `proveedor_mapear_campos` con el `caso`: cada campo queda `lleno` (con fuente), `faltante` o `requiere_confirmacion`.
-3. `proveedor_generar_formulario` con el `caso`: genera `valores-portal.md` (solo formato portal).
+3. `proveedor_generar_formulario` con el `caso`. En formato portal responde literalmente «formato no soportado» (el portal no se automatiza) y entrega `valores-portal.md` con los valores para copiar. En xlsx genera `formulario.xlsx`; en pdf, `formulario.pdf`.
 4. `proveedor_armar_paquete` con el `caso`: checklist de soportes y borrador de correo.
 5. `proveedor_simular_envio` con el `caso`, solo cuando la analista pida enviar (ver CA3).
 

@@ -60,14 +60,6 @@ export function mensajeErrorLlm(err: ErrorLlm): string {
   return "No pude consultar al modelo en este momento. Intenta de nuevo."
 }
 
-// CA2: los números de identificación de la respuesta deben haber salido de una herramienta.
-function verificarValores(reply: string, fuentes: string[]): string {
-  const numeros = reply.match(/\b\d{6,}\b/g) ?? []
-  const noVerificados = [...new Set(numeros.filter((n) => !fuentes.some((f) => f.includes(n))))]
-  if (!noVerificados.length) return reply
-  return `${reply}\n⚠ Valores no verificados por herramientas: ${noVerificados.join(", ")}`
-}
-
 // Salidas de herramientas exitosas de toda la sesión: son la única fuente válida de valores (CA2).
 const fuentesDe = (historial: Mensaje[]): string[] =>
   historial.flatMap((m) => {
@@ -78,6 +70,16 @@ const fuentesDe = (historial: Mensaje[]): string[] =>
       return []
     }
   })
+
+// CA2: los identificadores de la respuesta (6 dígitos o más, correos y URLs) deben haber salido de una herramienta.
+const PATRONES_IDENTIFICADORES = [/\b\d{6,}\b/g, /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, /https?:\/\/[^\s)]+/g]
+
+function verificarValores(reply: string, fuentes: string[]): string {
+  const encontrados = PATRONES_IDENTIFICADORES.flatMap((patron) => reply.match(patron) ?? []).map((v) => v.replace(/[.,;:]+$/, ""))
+  const noVerificados = [...new Set(encontrados.filter((v) => !fuentes.some((f) => f.includes(v))))]
+  if (!noVerificados.length) return reply
+  return `${reply}\n⚠ Valores no verificados por herramientas: ${noVerificados.join(", ")}`
+}
 
 export async function ejecutarTurno(op: OpcionesCiclo, historial: Mensaje[]): Promise<ResultadoTurno> {
   const mensajes = [...historial]

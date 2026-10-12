@@ -118,12 +118,12 @@ Separación que evaluamos:
 | Historia / regla | Estado | Qué falta para producción |
 |---|---|---|
 | HU-1 Leer la solicitud | Hecho | — |
-| HU-2 Mapear campos al maestro | Hecho | Verificación de texto libre (CA2 parcial, sección 10). |
+| HU-2 Mapear campos al maestro | Hecho | Confianza: ≥ 0.8 llena (coincidencia exacta o normalizada, o similitud ≥ 0.8); entre 0.5 y 0.8 pide confirmación con sugerencia; < 0.5 es faltante. Sin confianza, nunca se inventa. |
 | HU-3 P0 Excel (`formulario.xlsx`) | Hecho | — |
 | HU-3 P1 PDF (`formulario.pdf`) | Hecho | — |
-| HU-3 P2 Portal (`valores-portal.md`) | Hecho | — |
+| HU-3 P2 Portal (`valores-portal.md`) | Hecho | La respuesta incluye «formato no soportado» y se entregan los valores copiables. |
 | HU-4 Paquete para firma | Hecho | — |
-| HU-5 Manejo de errores | Hecho | Mensajes de error de herramienta más amigables en el front. |
+| HU-5 Manejo de errores | Hecho | Plantilla o glosario corruptos devuelven «archivo corrupto: <nombre> no se puede leer» sin traza del parser. Caso inexistente, herramienta desconocida y argumentos inválidos también se explican. |
 | Chat: historial, tool-calls, pensando, diálogo, CSP, anti-XSS | Hecho | Pruebas visuales en navegador real. |
 | RN1 Identificador tributario por país | Hecho | — |
 | RN2 Borrador sin banco | Hecho | — |
@@ -131,7 +131,7 @@ Separación que evaluamos:
 | RN4 Confirmación antes de acción externa | Hecho | — |
 | RN5 Log por ejecución | Hecho | — |
 | CA1 Tope de iteraciones | Hecho | — |
-| CA2 Solo valores de herramientas | Parcial | Verificación semántica de texto libre. |
+| CA2 Solo valores de herramientas | Parcial | Se verifican identificadores (números de 6 dígitos o más, correos y URLs) contra las salidas de herramientas de la sesión. Nombres y direcciones en texto libre dependen del prompt. |
 | CA3 Confirmación explícita | Hecho | — |
 | CA4 Llamadas visibles y en log | Hecho | — |
 | CA5 Errores claros, sesión viva | Hecho | — |
@@ -193,12 +193,12 @@ Cada control del PRD con el mecanismo que lo implementa y la prueba que lo verif
 | RN4 Confirmación antes de acción externa | `proveedor_simular_envio` exige `confirmado=true` | `simular-envio.test.ts`, `cableado.test.ts` |
 | RN5 Registro por ejecución | `registrar()` en `BaseTool` escribe `log.jsonl` | `armar-paquete.test.ts`, `demo-xlsx.test.ts`, `demo-pdf.test.ts` |
 | HU-1 Leer solicitud | `proveedor_leer_solicitud` (plantilla de campos o de celdas) | `leer-solicitud.test.ts` |
-| HU-2 Mapear al maestro | Estados `llenos` / `faltantes` / `requiere_confirmacion`; glosario | `mapear-campos.test.ts` |
+| HU-2 Mapear al maestro | Estados `llenos` / `faltantes` / `requiere_confirmacion`; glosario; confianza por similitud | `mapear-campos.test.ts`, `cumplimiento-prd.test.ts` (confianza) |
 | HU-3 P0 Excel | Escritura en hoja y celda de `plantilla-celdas.json` | `generar-xlsx.test.ts`, `demo-xlsx.test.ts` |
 | HU-3 P1 PDF | Etiquetas en orden de `plantilla-campos.json`, faltantes `(pendiente)` | `generar-pdf.test.ts`, `demo-pdf.test.ts` |
-| HU-3 P2 Portal | `valores-portal.md` | `generar-portal.test.ts`, `demo-pa.test.ts` |
+| HU-3 P2 Portal | `valores-portal.md` y aviso «formato no soportado» | `generar-portal.test.ts`, `demo-pa.test.ts`, `cumplimiento-prd.test.ts` |
 | HU-4 Paquete para firma | Checklist, copias, formulario, borrador | `armar-paquete.test.ts`, `demo-xlsx.test.ts` |
-| HU-5 Manejo de errores | `{ok,data}` / `{ok,error}` sin lanzar; caso inexistente y plantilla corrupta | `contrato-tools.test.ts`, `leer-solicitud.test.ts`, `demo-todos.test.ts` |
+| HU-5 Manejo de errores | `{ok,data}` / `{ok,error}` sin lanzar; caso inexistente; archivo corrupto con mensaje claro | `contrato-tools.test.ts`, `leer-solicitud.test.ts`, `demo-todos.test.ts`, `cumplimiento-prd.test.ts` |
 | Seguridad: clave solo en entorno | `.env` ignorado; clave no aparece en respuestas ni en `out/` | `seguridad.test.ts` |
 | Seguridad: sin shell, sin rutas absolutas | Escaneo del código y de los artefactos | `seguridad.test.ts` |
 | Seguridad: anti-XSS, CSP, path traversal | Render como texto, `default-src 'self'`, slug de caso | `gui-modal.test.ts`, `contrato-tools.test.ts`, `seguridad.test.ts` |
