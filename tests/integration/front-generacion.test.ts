@@ -151,3 +151,39 @@ describe("front: generación real de cada formato y descarga desde el chat (PRD 
     }
   })
 })
+
+describe("descargas agrupadas y sin duplicados (usuario final)", () => {
+  it("el front separa 'Formulario' y 'Paquete para firma', con etiquetas claras y sin repetir el formulario", async () => {
+    const caso = "co-industrias-delta"
+    const { server, doc, llego } = await usarFrontCon(
+      [herramienta("proveedor_generar_formulario", { caso }, "g1"), herramienta("proveedor_armar_paquete", { caso }, "a1"), { text: "Listo." }],
+      caso,
+    )
+    try {
+      expect(llego).toBe(true)
+      const titulos = [...doc.querySelectorAll("#historial .descargas h4")].map((h) => h.textContent)
+      expect(titulos).toEqual(["Formulario", "Paquete para firma"])
+      const etiquetas = [...doc.querySelectorAll("#historial .descargas a")].map((a) => a.textContent)
+      expect(etiquetas).toContain("Formulario Excel")
+      expect(etiquetas).toContain("Checklist de soportes")
+      expect(etiquetas).toContain("Borrador de correo")
+      const hrefs = [...doc.querySelectorAll("#historial .descargas a")].map((a) => a.getAttribute("href"))
+      expect(hrefs.filter((h) => h?.endsWith("/paquete/formulario.xlsx"))).toHaveLength(0)
+      expect(new Set(hrefs).size).toBe(hrefs.length)
+    } finally {
+      server.close()
+    }
+  })
+
+  it("el caso PDF muestra 'Formulario PDF' y no ofrece Excel", async () => {
+    const caso = "ec-corp-andina"
+    const { server, doc, llego } = await usarFrontCon([herramienta("proveedor_generar_formulario", { caso }, "g1"), { text: "Listo." }], caso)
+    try {
+      expect(llego).toBe(true)
+      const etiquetas = [...doc.querySelectorAll("#historial .descargas a")].map((a) => a.textContent)
+      expect(etiquetas).toEqual(["Formulario PDF"])
+    } finally {
+      server.close()
+    }
+  })
+})

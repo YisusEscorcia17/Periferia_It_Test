@@ -159,6 +159,8 @@ describe("descarga de archivos generados (PRD 9.3: probar desde un link)", () =>
       { text: "Listo" },
     ])
     const r = await request(app).post("/api/chat").send({ sessionId: "dl", message: "genera" })
-    expect(r.body.descargas).toEqual([{ nombre: "formulario.xlsx", url: "/api/archivos/co-industrias-delta/formulario.xlsx" }])
+    expect(r.body.descargas).toEqual([
+      { grupo: "Formulario", etiqueta: "Formulario Excel", nombre: "formulario.xlsx", url: "/api/archivos/co-industrias-delta/formulario.xlsx" },
+    ])
   })
 })

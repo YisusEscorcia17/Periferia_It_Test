@@ -136,3 +136,13 @@ dialog code { background: #f1f5f9; padding: .05rem .3rem; border-radius: 4px; fo
   .msg { max-width: 94%; }
   .entrada { flex-direction: column; }
 }
+
+/* Descargas agrupadas */
+.descargas { align-self: stretch; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: .8rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
+.descargas-titulo { margin: 0; font-weight: 600; font-size: .9rem; }
+.grupo-descarga h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+.grupo-descarga ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.grupo-descarga li { display: flex; flex-direction: column; }
+.grupo-descarga a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.grupo-descarga a:hover { text-decoration: underline; }
+.grupo-descarga small { color: var(--suave); font-size: .75rem; }

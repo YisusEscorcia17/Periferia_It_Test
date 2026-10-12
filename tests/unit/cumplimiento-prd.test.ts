@@ -87,3 +87,11 @@ describe("HU-2: confianza menor que 0.8 pasa a requiere_confirmacion; nunca se i
     expect(d.faltantes).toEqual([{ etiqueta: "Campo inexistente XYZ" }])
   })
 })
+
+describe("respuesta al usuario final (PRD 6.1: el chat muestra el resultado)", () => {
+  it("el prompt pide indicar el formato del formulario y remitir a los enlaces, sin rutas del servidor", () => {
+    const prompt = readFileSync(join(raiz, "agent/prompt.md"), "utf8")
+    expect(prompt).toMatch(/Archivos listos para descargar/)
+    expect(prompt).toMatch(/no escribas rutas/i)
+  })
+})

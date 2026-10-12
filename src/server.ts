@@ -1,5 +1,5 @@
 import express from "express"
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { appendFile, mkdir, stat } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { z } from "zod"
@@ -80,8 +80,16 @@ export function crearApp(op: OpcionesApp) {
   })
 
   // Archivos que se pueden descargar (lista blanca). Nunca se sirve nada fuera de out/<caso>/.
-  const DESCARGABLES = ["formulario.xlsx", "formulario.pdf", "valores-portal.md", "ENVIO-SIMULADO.md"]
-  const DESCARGABLES_PAQUETE = ["formulario.xlsx", "formulario.pdf", "valores-portal.md", "checklist.md", "borrador-correo.md"]
+  // Formulario del caso (PRD HU-3): solo el que corresponde al formato del cliente.
+  const FORMULARIOS = [
+    { nombre: "formulario.xlsx", etiqueta: "Formulario Excel" },
+    { nombre: "formulario.pdf", etiqueta: "Formulario PDF" },
+    { nombre: "valores-portal.md", etiqueta: "Valores para el portal" },
+    { nombre: "ENVIO-SIMULADO.md", etiqueta: "Envío simulado" },
+  ]
+  // Archivos del paquete con nombre propio; el resto (soportes copiados) se muestra como "Soporte".
+  const ETIQUETAS_PAQUETE: Record<string, string> = { "checklist.md": "Checklist de soportes", "borrador-correo.md": "Borrador de correo" }
+  const NOMBRE_SEGURO = /^[\w.-]+$/
 
   const enviarArchivo = (res: express.Response, ruta: string, nombre: string) => {
     if (!existsSync(ruta)) return res.status(404).json({ error: "archivo no encontrado" })
@@ -89,19 +97,35 @@ export function crearApp(op: OpcionesApp) {
   }
 
   app.get("/api/archivos/:caso/:nombre", (req, res) => {
-    if (!CASO.test(req.params.caso) || !DESCARGABLES.includes(req.params.nombre)) return res.status(404).json({ error: "archivo no disponible" })
-    enviarArchivo(res, join(outDir, req.params.caso, req.params.nombre), req.params.nombre)
+    const { caso, nombre } = req.params
+    if (!CASO.test(caso) || !FORMULARIOS.some((f) => f.nombre === nombre)) return res.status(404).json({ error: "archivo no disponible" })
+    enviarArchivo(res, join(outDir, caso, nombre), nombre)
   })
 
   app.get("/api/archivos/:caso/paquete/:nombre", (req, res) => {
-    if (!CASO.test(req.params.caso) || !DESCARGABLES_PAQUETE.includes(req.params.nombre)) return res.status(404).json({ error: "archivo no disponible" })
-    enviarArchivo(res, join(outDir, req.params.caso, "paquete", req.params.nombre), req.params.nombre)
+    const { caso, nombre } = req.params
+    if (!CASO.test(caso) || !NOMBRE_SEGURO.test(nombre)) return res.status(404).json({ error: "archivo no disponible" })
+    enviarArchivo(res, join(outDir, caso, "paquete", nombre), nombre)
   })
 
   // Enlaces de descarga de los archivos que existen para el caso del turno.
-  const descargasDelCaso = (caso: string) => {
-    const enRaiz = DESCARGABLES.filter((n) => existsSync(join(outDir, caso, n))).map((nombre) => ({ nombre, url: `/api/archivos/${caso}/${nombre}` }))
-    const enPaquete = DESCARGABLES_PAQUETE.filter((n) => existsSync(join(outDir, caso, "paquete", n))).map((nombre) => ({ nombre: `paquete/${nombre}`, url: `/api/archivos/${caso}/paquete/${nombre}` }))
+  type Descarga = { grupo: string; etiqueta: string; nombre: string; url: string }
+  const descargasDelCaso = (caso: string): Descarga[] => {
+    const enRaiz: Descarga[] = FORMULARIOS.filter((f) => existsSync(join(outDir, caso, f.nombre))).map((f) => ({
+      grupo: "Formulario",
+      etiqueta: f.etiqueta,
+      nombre: f.nombre,
+      url: `/api/archivos/${caso}/${f.nombre}`,
+    }))
+    const carpeta = join(outDir, caso, "paquete")
+    const nombresPaquete = existsSync(carpeta) ? readdirSync(carpeta).filter((n) => NOMBRE_SEGURO.test(n) && !FORMULARIOS.some((f) => f.nombre === n)) : []
+    const ordenados = nombresPaquete.sort((a, b) => Number(!ETIQUETAS_PAQUETE[a]) - Number(!ETIQUETAS_PAQUETE[b]) || a.localeCompare(b))
+    const enPaquete: Descarga[] = ordenados.map((n) => ({
+      grupo: "Paquete para firma",
+      etiqueta: ETIQUETAS_PAQUETE[n] ?? `Soporte: ${n}`,
+      nombre: `paquete/${n}`,
+      url: `/api/archivos/${caso}/paquete/${n}`,
+    }))
     return [...enRaiz, ...enPaquete]
   }
 

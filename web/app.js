@@ -39,18 +39,33 @@
   }
 
   // Enlaces para descargar los archivos generados (formulario, valores del portal, paquete).
+  // Descargas agrupadas por función (PRD HU-3 y HU-4): cada archivo tiene una etiqueta clara y su nombre real.
   const enlacesDeDescarga = (descargas) => {
     const caja = document.createElement("div")
     caja.className = "descargas"
-    const titulo = document.createElement("span")
-    titulo.textContent = "Archivos generados:"
+    const titulo = document.createElement("p")
+    titulo.className = "descargas-titulo"
+    titulo.textContent = "Archivos listos para descargar"
     caja.append(titulo)
-    for (const d of descargas) {
-      const enlace = document.createElement("a")
-      enlace.href = d.url
-      enlace.download = d.nombre.replace(/^paquete\//, "")
-      enlace.textContent = d.nombre
-      caja.append(enlace)
+    for (const grupo of [...new Set(descargas.map((d) => d.grupo))]) {
+      const bloque = document.createElement("section")
+      bloque.className = "grupo-descarga"
+      const encabezado = document.createElement("h4")
+      encabezado.textContent = grupo
+      const lista = document.createElement("ul")
+      for (const d of descargas.filter((x) => x.grupo === grupo)) {
+        const item = document.createElement("li")
+        const enlace = document.createElement("a")
+        enlace.href = d.url
+        enlace.download = d.nombre.split("/").pop()
+        enlace.textContent = d.etiqueta
+        const nombre = document.createElement("small")
+        nombre.textContent = d.nombre
+        item.append(enlace, nombre)
+        lista.append(item)
+      }
+      bloque.append(encabezado, lista)
+      caja.append(bloque)
     }
     historial.append(caja)
   }
