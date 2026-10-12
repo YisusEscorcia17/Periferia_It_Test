@@ -13,6 +13,12 @@ import { guionAdaptador } from "../helpers.js"
 
 // Prueba de extremo a extremo desde el front: tarjeta del caso → chat con herramientas reales → enlace → archivo descargado.
 const raiz = fileURLToPath(new URL("../../", import.meta.url))
+// Superficie de la ventana de jsdom que la prueba necesita parchear.
+interface VentanaJsdom {
+  HTMLDialogElement: { prototype: { showModal: (this: HTMLElement) => void; close: (this: HTMLElement) => void } }
+  fetch: (u: string, o?: RequestInit) => Promise<Response>
+}
+
 const outRel = "out-test/front"
 const cfg = cargarConfigPortal({ PROVEEDOR_RUTA_OUT: outRel })
 const webDir = join(raiz, "web")
@@ -36,10 +42,12 @@ async function usarFrontCon(pasos: Parameters<typeof guionAdaptador>[0], caso: s
     resources: "usable",
     pretendToBeVisual: true,
     beforeParse(w) {
-      const proto = (w as any).HTMLDialogElement.prototype
-      proto.showModal = function () { this.setAttribute("open", "") }
-      proto.close = function () { this.removeAttribute("open") }
-      ;(w as any).fetch = (u: string, o?: RequestInit) => fetch(new URL(u, base), o)
+      // jsdom no implementa showModal/close ni fetch relativo: se parchea la ventana con su forma real.
+      const ventana = w as unknown as VentanaJsdom
+      const proto = ventana.HTMLDialogElement.prototype
+      proto.showModal = function (this: HTMLElement) { this.setAttribute("open", "") }
+      proto.close = function (this: HTMLElement) { this.removeAttribute("open") }
+      ventana.fetch = (u: string, o?: RequestInit) => fetch(new URL(u, base), o)
     },
   })
   await new Promise((r) => dom.window.addEventListener("load", r))
