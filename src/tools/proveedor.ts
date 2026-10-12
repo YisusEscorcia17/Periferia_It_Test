@@ -47,7 +47,12 @@ const dirCaso = (ctx: ToolContext, config: ConfigPortal, caso: string) => new Pa
 
 // Lee un JSON del caso o del repositorio. Si está corrupto, el error nombra el archivo y no muestra la traza del parser.
 function leerJson(ctx: ToolContext, ruta: string): ReturnType<typeof JSON.parse> {
-  const texto = ctx.fs.leer(ruta)
+  let texto: string
+  try {
+    texto = ctx.fs.leer(ruta)
+  } catch {
+    throw new Error(`archivo no se puede leer: ${basename(ruta)}`)
+  }
   try {
     return JSON.parse(texto)
   } catch {

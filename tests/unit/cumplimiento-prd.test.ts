@@ -95,3 +95,71 @@ describe("respuesta al usuario final (PRD 6.1: el chat muestra el resultado)", (
     expect(prompt).toMatch(/no escribas rutas/i)
   })
 })
+
+describe("HU-5: plantilla ausente con mensaje claro y sin rutas absolutas (xlsx y pdf)", () => {
+  // Simula que el archivo no existe: existe() es false y leer() falla como lo haría el sistema de archivos.
+  const sinArchivo = (ruta: string): ToolContext => {
+    const real = new FsNode()
+    return {
+      ...ctx,
+      fs: {
+        leer: (r) => {
+          if (r === ruta) throw Object.assign(new Error(`ENOENT: no such file or directory, open '${r}'`), { code: "ENOENT" })
+          return real.leer(r)
+        },
+        existe: (r) => (r === ruta ? false : real.existe(r)),
+        escribir: (r, c) => real.escribir(r, c),
+        escribirBinario: (r, d) => real.escribirBinario(r, d),
+        copiar: (o, d) => real.copiar(o, d),
+        listar: (r) => real.listar(r),
+        borrar: (r) => real.borrar(r),
+      },
+    }
+  }
+  const sinTraza = (texto: string) => {
+    expect(texto).not.toMatch(/ENOENT|no such file|open '/)
+    expect(texto).not.toMatch(/[A-Za-z]:\|\/Users\//)
+  }
+
+  it("xlsx sin plantilla-celdas.json: mensaje claro que nombra el archivo", async () => {
+    const ruta = join(dirCaso("co-industrias-delta"), "plantilla-celdas.json")
+    const salida = JSON.parse(await new GenerarPortal(cfg).execute({ caso: "co-industrias-delta" }, sinArchivo(ruta)))
+    expect(salida.ok).toBe(false)
+    expect(salida.error).toMatch(/plantilla-celdas\.json/)
+    sinTraza(salida.error)
+  })
+
+  it("pdf sin plantilla-campos.json: mensaje claro que nombra el archivo", async () => {
+    const ruta = join(dirCaso("ec-corp-andina"), "plantilla-campos.json")
+    const salida = JSON.parse(await new GenerarPortal(cfg).execute({ caso: "ec-corp-andina" }, sinArchivo(ruta)))
+    expect(salida.ok).toBe(false)
+    expect(salida.error).toMatch(/plantilla-campos\.json/)
+    sinTraza(salida.error)
+  })
+})
+
+describe("HU-5: archivo que existe pero no se puede leer (p. ej. permisos) sin traza ni rutas", () => {
+  it("el error nombra el archivo y no muestra la causa técnica del sistema", async () => {
+    const ruta = join(dirCaso("co-industrias-delta"), "plantilla-celdas.json")
+    const real = new FsNode()
+    const ctxIlegible: ToolContext = {
+      ...ctx,
+      fs: {
+        leer: (r) => {
+          if (r === ruta) throw Object.assign(new Error(`EACCES: permission denied, open '${r}'`), { code: "EACCES" })
+          return real.leer(r)
+        },
+        existe: () => true,
+        escribir: (r, c) => real.escribir(r, c),
+        escribirBinario: (r, d) => real.escribirBinario(r, d),
+        copiar: (o, d) => real.copiar(o, d),
+        listar: (r) => real.listar(r),
+        borrar: (r) => real.borrar(r),
+      },
+    }
+    const salida = JSON.parse(await new GenerarPortal(cfg).execute({ caso: "co-industrias-delta", mapeo: { llenos: [], faltantes: [], requiere_confirmacion: [] } }, ctxIlegible))
+    expect(salida.ok).toBe(false)
+    expect(salida.error).toMatch(/plantilla-celdas\.json/)
+    expect(salida.error).not.toMatch(/EACCES|permission denied|open '|[A-Za-z]:\|\/Users\//)
+  })
+})
