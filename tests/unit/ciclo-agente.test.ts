@@ -137,3 +137,28 @@ describe("CA2 reforzado: correos y URLs también deben salir de herramientas", (
     expect(r.reply).not.toMatch(/no verificados/)
   })
 })
+
+describe("CA2 completo: nombres y valores destacados también deben salir de herramientas (PRD 6.3)", () => {
+  const conNombre = { proveedor_mapear_campos: { description: "mapea", args: {}, async execute() { return JSON.stringify({ ok: true, data: { llenos: [{ etiqueta: "Razón social", valor: "Periferia IT Group S.A.S." }] } }) } } }
+  const pedir = { toolCalls: [{ id: "c1", name: "proveedor_mapear_campos", args: {} }] }
+  const correrCon = async (texto: string) => {
+    const adapter = guionAdaptador([pedir, { text: texto }])
+    return (await ejecutarTurno({ adapter, tools: conNombre, maxIter: 5, ctx }, [{ role: "user", content: "x" }])).reply
+  }
+
+  it("un nombre en negrita que no salió de herramientas se marca como no verificado", async () => {
+    expect(await correrCon("El representante es **Juan Pérez Gómez**.")).toMatch(/no verificados.*Juan Pérez Gómez/)
+  })
+
+  it("una razón social que sí salió de herramientas no se marca", async () => {
+    expect(await correrCon("La razón social es **Periferia IT Group S.A.S.**.")).not.toMatch(/no verificados/)
+  })
+
+  it("un nombre propio sin formato destacado que no salió de herramientas se marca", async () => {
+    expect(await correrCon("Firma Carlos Restrepo Vélez en el paquete.")).toMatch(/no verificados.*Carlos Restrepo Vélez/)
+  })
+
+  it("las frases normales de respuesta no se marcan", async () => {
+    expect(await correrCon("Procesé el caso. No envíes nada todavía. Faltantes: ninguno.")).not.toMatch(/no verificados/)
+  })
+})

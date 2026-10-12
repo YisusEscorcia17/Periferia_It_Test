@@ -71,12 +71,66 @@ const fuentesDe = (historial: Mensaje[]): string[] =>
     }
   })
 
-// CA2: los identificadores de la respuesta (6 dígitos o más, correos y URLs) deben haber salido de una herramienta.
+// CA2: identificadores (6 dígitos o más, correos, URLs) que la respuesta afirma deben haber salido de una herramienta.
 const PATRONES_IDENTIFICADORES = [/\b\d{6,}\b/g, /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, /https?:\/\/[^\s)]+/g]
 
+// Valores destacados: negrita, comillas latinas o inglesas.
+const PATRON_DESTACADO = /\*\*([^*]+)\*\*|«([^»]+)»|"([^"]+)"/g
+
+// Secuencias con mayúscula inicial: posibles nombres propios (p. ej. "Carlos Restrepo Vélez").
+const PATRON_NOMBRE = /\b[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&-]*(?:\s+(?:(?:de|del|la|las|los|y|e)(?![A-Za-zÁÉÍÓÚÑáéíóúñ0-9])|[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&-]*))+/g
+
+// Palabras del proceso y de la interfaz que no son valores (encabezados, etiquetas, nombres de caso).
+const PALABRAS_DEL_PROCESO = [
+  "estado", "resultado", "resumen", "faltantes", "faltante", "llenos", "lleno", "requiere", "confirmación", "confirmar", "confirme",
+  "formulario", "formularios", "paquete", "checklist", "borrador", "correo", "soportes", "soporte", "archivos", "listos", "descargar",
+  "firma", "listo", "envío", "envíes", "enviar", "simulado", "pendiente", "revisar", "campos", "campo", "portal", "valores", "excel", "pdf",
+  "caso", "cliente", "país", "formato", "nota", "sugerencia", "ninguno", "sí", "colombia", "ecuador", "panamá", "perú", "honduras",
+  "cámara", "comercio", "rut", "certificación", "bancaria", "estados", "financieros", "parafiscales", "iso", "tributario", "identificador",
+  "extranjero", "anterior", "siguiente", "procesé", "generé", "preparé", "revisa", "nit", "ruc", "rtn", "dv", "cuenta", "banco", "swift",
+  "claude", "haiku", "proveedor", "registro", "solicitud", "herramienta", "herramientas", "llamada", "llamadas", "turno",
+  "está", "están", "estoy", "estar", "es", "son", "fue", "ser", "hay", "tiene", "tienen", "todavía", "aún", "qué", "cuál", "cuáles", "quién",
+  "cómo", "tu", "tus", "mi", "mis", "puede", "pueden", "debe", "deben", "hacer", "quedó", "quedaron", "quedan", "falta", "faltan", "sigue",
+  "siguen", "presente", "presentes", "ausente", "ausentes", "vencido", "vencidos", "vigente", "vigentes", "enviar", "pregunta", "dato", "datos",
+  "revisa", "confirma", "prepara", "preparé", "procesa", "procesé", "genera", "generé", "arma", "armé", "entrega", "entregué", "descarga",
+  "tiene", "listo", "lista", "listos", "sin", "más", "menos", "solo", "sólo", "también", "ahora", "después", "antes", "todo", "todos",
+]
+const CONECTORES = new Set(["de", "del", "la", "las", "los", "y", "e", "el", "un", "una", "es", "en", "con", "por", "para", "al", "a", "o", "se", "que", "lo", "su", "no", "ya"])
+
+const normalizarPalabra = (p: string) =>
+  p
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/^[.,;:()]+|[.,;:()]+$/g, "")
+
+// Todas las palabras que aparecen en las salidas de herramientas de la sesión.
+function palabrasDeFuentes(fuentes: string[]): Set<string> {
+  return new Set(fuentes.flatMap((f) => f.split(/[^\p{L}\p{N}.&-]+/u).map(normalizarPalabra).filter(Boolean)))
+}
+
+// Candidatos a valor (destacados o nombres propios) cuyo texto no aparece en las salidas de herramientas.
+function nombresNoVerificados(reply: string, fuentes: string[]): string[] {
+  const conocidas = palabrasDeFuentes(fuentes)
+  for (const p of PALABRAS_DEL_PROCESO) conocidas.add(normalizarPalabra(p))
+  const candidatos = [
+    ...[...reply.matchAll(PATRON_DESTACADO)].map((m) => (m[1] ?? m[2] ?? m[3]).trim()),
+    ...[...reply.matchAll(PATRON_NOMBRE)].map((m) => m[0].trim()),
+  ]
+  return [...new Set(candidatos)].filter((c) =>
+    c
+      .split(/\s+/)
+      .map(normalizarPalabra)
+      .filter((p) => p && !CONECTORES.has(p))
+      .some((p) => !conocidas.has(p)),
+  )
+}
+
 function verificarValores(reply: string, fuentes: string[]): string {
-  const encontrados = PATRONES_IDENTIFICADORES.flatMap((patron) => reply.match(patron) ?? []).map((v) => v.replace(/[.,;:]+$/, ""))
-  const noVerificados = [...new Set(encontrados.filter((v) => !fuentes.some((f) => f.includes(v))))]
+  const identificadores = PATRONES_IDENTIFICADORES.flatMap((patron) => reply.match(patron) ?? [])
+    .map((v) => v.replace(/[.,;:]+$/, ""))
+    .filter((v) => !fuentes.some((f) => f.includes(v)))
+  const noVerificados = [...new Set([...identificadores, ...nombresNoVerificados(reply, fuentes)])]
   if (!noVerificados.length) return reply
   return `${reply}\n⚠ Valores no verificados por herramientas: ${noVerificados.join(", ")}`
 }

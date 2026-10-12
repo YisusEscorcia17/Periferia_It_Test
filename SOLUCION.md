@@ -45,7 +45,7 @@ Separación que evaluamos:
 
 **Memoria de sesión.** La sesión guarda el historial completo del turno, con llamadas y resultados de herramientas. Así el modelo puede citar lo calculado en turnos anteriores sin repetir llamadas.
 
-**Verificación de valores (CA2).** Las herramientas son la única fuente de valores. Como verificación determinista, cada número de identificación (6 dígitos o más) de la respuesta debe aparecer en alguna salida exitosa de herramienta de la sesión. Si no aparece, la respuesta añade una advertencia `⚠ Valores no verificados por herramientas`. Esto cubre números, no texto libre; ver sección 10.
+**Verificación de valores (CA2).** Las herramientas son la única fuente de valores (PRD 6.3). Después de cada respuesta, el servidor revisa de forma determinista: identificadores (números de 6 dígitos o más, correos y URLs), valores destacados (negrita, comillas) y nombres propios (secuencias con mayúscula inicial). Cada uno debe aparecer en alguna salida exitosa de herramienta de la sesión. Si no, la respuesta añade `⚠ Valores no verificados por herramientas`. Limitación: las palabras comunes del proceso (encabezados, etiquetas, conectores) están en una lista blanca; ver sección 10.
 
 **Observabilidad (CA4, RN5).** Cada llamada a herramienta queda en el chat y en `out/<caso>/log.jsonl` con `{ts, herramienta, ok, resumen}`. El servidor registra además `tool_call`, `envio_simulado`, `envio_fallido`, `limite_tokens` y `error_llm` en `out/log.jsonl`.
 
@@ -131,7 +131,7 @@ Separación que evaluamos:
 | RN4 Confirmación antes de acción externa | Hecho | — |
 | RN5 Log por ejecución | Hecho | — |
 | CA1 Tope de iteraciones | Hecho | — |
-| CA2 Solo valores de herramientas | Parcial | Se verifican identificadores (números de 6 dígitos o más, correos y URLs) contra las salidas de herramientas de la sesión. Nombres y direcciones en texto libre dependen del prompt. |
+| CA2 Solo valores de herramientas | Cumple (verificación determinista) | Identificadores, correos, URLs, valores destacados y nombres propios se comparan con las salidas de herramientas de la sesión. Limitación documentada: palabras comunes del proceso están en lista blanca. |
 | CA3 Confirmación explícita | Hecho | — |
 | CA4 Llamadas visibles y en log | Hecho | — |
 | CA5 Errores claros, sesión viva | Hecho | — |
@@ -166,7 +166,7 @@ Separación que evaluamos:
 
 | Riesgo | Mitigación actual | Mitigación para producción |
 |---|---|---|
-| El modelo inventa un valor de texto libre (nombre, dirección). | Prompt (CA2); verificación de números; las herramientas son la única fuente. | Verificación semántica de cada valor citado, o salida estructurada. |
+| El modelo inventa un valor de texto libre (nombre, dirección). | Verificación determinista de identificadores, valores destacados y nombres propios; las herramientas son la única fuente. | Un valor citado sin formato destacado ni mayúscula inicial (p. ej. una dirección en minúsculas) no se verifica; ver lista blanca. |
 | El modelo cambia de comportamiento con una actualización. | Pruebas de integración con el adaptador y medición real por cambio. | Evaluación automatizada con casos dorados antes de cada cambio de modelo. |
 | Costo descontrolado. | `TOKENS_SESION` y `MAX_ITER`. | Presupuesto mensual y alertas en el proveedor. |
 | Sesiones en memoria se pierden al reiniciar. | Aceptable para el reto (sin persistencia en PRD). | Almacén de sesiones en archivo o base de datos. |
@@ -183,7 +183,7 @@ Cada control del PRD con el mecanismo que lo implementa y la prueba que lo verif
 | Control | Mecanismo | Prueba |
 |---|---|---|
 | CA1 Tope de iteraciones | `MAX_ITER` en `ciclo.ts`; al alcanzarlo devuelve parciales y faltantes | `ciclo-agente.test.ts` (corta en el tope) |
-| CA2 Solo valores de herramientas | Prompt + verificación de identificadores numéricos contra salidas de herramientas de toda la sesión | `ciclo-agente.test.ts` (no verificados / sí verificados / turnos anteriores) |
+| CA2 Solo valores de herramientas | Prompt + verificación determinista de identificadores, valores destacados y nombres propios contra las salidas de toda la sesión | `ciclo-agente.test.ts` (identificadores, nombres en negrita, nombres propios, frases normales, turnos anteriores) |
 | CA3 Confirmación explícita | `actionId` de un uso y vigente en el turno siguiente; el modelo no ve `confirmado` | `api-chat.test.ts` (modelo no confirma, reuso rechazado), `gui-modal.test.ts` (Aceptar crea, Cancelar y Esc no) |
 | CA4 Llamadas visibles y registradas | Historial del chat y `log.jsonl` | `armar-paquete.test.ts`, `demo-xlsx.test.ts` (línea de generación) |
 | CA5 Errores claros, sesión viva | Clasificación de errores del proveedor (timeout, 429, 401, 5xx) | `ciclo-agente.test.ts` (429, timeout), `api-chat.test.ts` (sesión sigue) |
