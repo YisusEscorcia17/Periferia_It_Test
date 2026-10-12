@@ -2,7 +2,7 @@ import { basename, join, relative, sep } from "node:path"
 import ExcelJS from "exceljs"
 import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib"
 import { z } from "zod"
-import { ETIQUETAS_TRIBUTARIAS_AMBIGUAS, TEXTOS, cargarConfigPortal, type ConfigPortal } from "../config.js"
+import { ETIQUETAS_TRIBUTARIAS_AMBIGUAS, MAPA_TRIBUTARIO, TEXTOS, cargarConfigPortal, type ConfigPortal } from "../config.js"
 import { BaseTool, casoSchema, type ToolContext } from "../core/BaseTool.js"
 import { PathResolver } from "../core/PathResolver.js"
 
@@ -102,6 +102,9 @@ function resolverClave(etiqueta: string, glosario: Record<string, string>): { cl
   return mejor && mejor.confianza >= CONFIANZA_MINIMA ? mejor : undefined
 }
 
+// RN1 / HU-1: identificador tributario equivalente en el país del cliente (NIT, RUC o RTN).
+const equivalenteTributario = (pais: string): string => MAPA_TRIBUTARIO[pais] ?? "identificador tributario"
+
 // Clasifica cada campo contra glosario + maestro (RN1, HU-1 y HU-2). Nunca inventa valores.
 export function mapearCampos(ctx: ToolContext, config: ConfigPortal, caso: string, campos?: Array<{ etiqueta: string }>): Mapeo {
   const dir = dirCaso(ctx, config, caso)
@@ -120,9 +123,9 @@ export function mapearCampos(ctx: ToolContext, config: ConfigPortal, caso: strin
       const porcentaje = Math.round(resuelta.confianza * 100)
       mapeo.requiere_confirmacion.push({ etiqueta, valor, fuente: resuelta.clave, nota: `sugerencia de ${porcentaje}% de confianza (${resuelta.sinonimo}): confirme que corresponde` })
     } else if (resuelta.clave === "nit" && pais !== "CO") {
-      mapeo.requiere_confirmacion.push({ etiqueta, valor, fuente: resuelta.clave, nota: TEXTOS.identificadorExtranjero })
+      mapeo.requiere_confirmacion.push({ etiqueta, valor, fuente: resuelta.clave, nota: `${TEXTOS.identificadorExtranjero}: equivalente en ${pais} es ${equivalenteTributario(pais)}` })
     } else if (resuelta.clave === "nit" && (ETIQUETAS_TRIBUTARIAS_AMBIGUAS as readonly string[]).includes(etiqueta)) {
-      mapeo.requiere_confirmacion.push({ etiqueta, valor, fuente: resuelta.clave, nota: TEXTOS.ambigua })
+      mapeo.requiere_confirmacion.push({ etiqueta, valor, fuente: resuelta.clave, nota: `${TEXTOS.ambigua}: equivalente en ${pais} es ${equivalenteTributario(pais)}` })
     } else {
       mapeo.llenos.push({ etiqueta, valor, fuente: resuelta.clave })
     }
@@ -277,7 +280,7 @@ export class GenerarPortal extends BaseTool<typeof SchemaGenerar> {
       return generarPdf(ctx, this.config, args.caso, dir, args.mapeo ?? mapearCampos(ctx, this.config, args.caso), solicitud.cliente)
     }
     if (formato !== "portal") {
-      return { formato_no_soporte: true, formato }
+      return { formato_no_soporte: true, formato, aviso: `formato no soportado: «${formato}». Formatos disponibles: Excel (xlsx), PDF y valores para el portal.` }
     }
     // PRD HU-3 P2: el portal no se automatiza; se responde con ese aviso y se entregan los valores copiables.
     return this.generarValoresPortal(ctx, args, solicitud.cliente)
