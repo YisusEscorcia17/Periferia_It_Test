@@ -162,3 +162,40 @@ describe("CA2 completo: nombres y valores destacados también deben salir de her
     expect(await correrCon("Procesé el caso. No envíes nada todavía. Faltantes: ninguno.")).not.toMatch(/no verificados/)
   })
 })
+
+describe("HU-1: la primera línea tras leer la solicitud dice caso, cliente, país y formato (garantizado por el servidor)", () => {
+  const leerPa = {
+    proveedor_leer_solicitud: {
+      description: "lee",
+      args: {},
+      async execute() {
+        return JSON.stringify({ ok: true, data: { pais: "PA", cliente: "Logística del Istmo S.A.", formato: "portal", campos: [], soportes: [] } })
+      },
+    },
+  }
+  const llamarLeer = { toolCalls: [{ id: "l1", name: "proveedor_leer_solicitud", args: { caso: "pa-logistica-istmo" } }] }
+
+  it("si el modelo no lo dijo, se antepone una primera línea con caso, cliente, país y formato", async () => {
+    const adapter = guionAdaptador([llamarLeer, { text: "Soportes exigidos: cámara de comercio y RUT." }])
+    const r = await ejecutarTurno({ adapter, tools: leerPa, maxIter: 5, ctx }, [{ role: "user", content: "x" }])
+    const primera = r.reply.split("\n")[0]
+    expect(primera).toMatch(/pa-logistica-istmo/)
+    expect(primera).toMatch(/Logística del Istmo S\.A\./)
+    expect(primera).toMatch(/Panamá/)
+    expect(primera).toMatch(/portal/)
+  })
+
+  it("si el modelo ya lo dijo en la primera línea, no se repite", async () => {
+    const texto = "Caso pa-logistica-istmo: Logística del Istmo S.A., Panamá, formato portal (valores para copiar).\nSoportes exigidos: cámara de comercio y RUT."
+    const adapter = guionAdaptador([llamarLeer, { text: texto }])
+    const r = await ejecutarTurno({ adapter, tools: leerPa, maxIter: 5, ctx }, [{ role: "user", content: "x" }])
+    expect(r.reply.startsWith(texto)).toBe(true)
+    expect(r.reply.split("Logística del Istmo").length - 1).toBe(1)
+  })
+
+  it("sin lectura de solicitud en el turno no se antepone nada", async () => {
+    const adapter = guionAdaptador([{ text: "Hola, dime el caso." }])
+    const r = await ejecutarTurno({ adapter, tools: leerPa, maxIter: 5, ctx }, [{ role: "user", content: "x" }])
+    expect(r.reply).toBe("Hola, dime el caso.")
+  })
+})

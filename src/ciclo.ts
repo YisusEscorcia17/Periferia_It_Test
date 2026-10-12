@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { FORMATOS_NOMBRE, PAISES_NOMBRE } from "./config.js"
 import type { Adaptador, DefinicionTool, LlamadaTool, Mensaje } from "./llm/adapter.js"
 import type { ContextoHerramienta, Herramientas } from "./tools/registry.js"
 
@@ -135,6 +136,22 @@ function verificarValores(reply: string, fuentes: string[]): string {
   return `${reply}\n⚠ Valores no verificados por herramientas: ${noVerificados.join(", ")}`
 }
 
+// HU-1: si el turno leyó la solicitud, la primera línea de la respuesta dice caso, cliente, país y formato.
+// El modelo lo dice casi siempre; cuando no lo hace, el servidor antepone la línea con los datos de la herramienta.
+function encabezar(reply: string, toolCalls: RegistroToolCall[], mensajes: Mensaje[]): string {
+  const lectura = toolCalls.find((t) => t.name === "proveedor_leer_solicitud" && t.ok)
+  if (!lectura) return reply
+  const salida = [...mensajes].reverse().find((m) => m.role === "tool" && m.name === "proveedor_leer_solicitud")
+  if (!salida || salida.role !== "tool") return reply
+  const { cliente, pais, formato } = JSON.parse(salida.content).data
+  if (!cliente || !pais || !formato) return reply
+  const nombrePais = PAISES_NOMBRE[pais] ?? pais
+  const nombreFormato = FORMATOS_NOMBRE[formato] ?? formato
+  const primera = reply.split("\n")[0]
+  if ([cliente, nombrePais, nombreFormato].every((t) => primera.includes(t))) return reply
+  return `Caso ${String(lectura.args.caso)} · ${cliente} · ${nombrePais} · formato ${nombreFormato}\n${reply}`
+}
+
 export async function ejecutarTurno(op: OpcionesCiclo, historial: Mensaje[]): Promise<ResultadoTurno> {
   const mensajes = [...historial]
   const toolCalls: RegistroToolCall[] = []
@@ -162,7 +179,7 @@ export async function ejecutarTurno(op: OpcionesCiclo, historial: Mensaje[]): Pr
       }
       let reply = resp.text ?? ""
       if (faltantes.length) reply += `${reply ? "\n" : ""}Faltantes (sin fuente en herramientas): ${faltantes.join(", ")}`
-      return { reply: verificarValores(reply, fuentes), toolCalls, faltantes, tokens, mensajes }
+      return { reply: verificarValores(encabezar(reply, toolCalls, mensajes), fuentes), toolCalls, faltantes, tokens, mensajes }
     }
 
     mensajes.push({ role: "assistant", content: resp.text ?? "", toolCalls: resp.toolCalls })

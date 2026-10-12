@@ -28,6 +28,10 @@ export const CLAVES_PORTAL = ["PROVEEDOR_RUTA_CASOS", "PROVEEDOR_RUTA_REPOSITORI
 // RN1: identificador tributario por país.
 export const MAPA_TRIBUTARIO: Readonly<Record<string, string>> = { CO: "NIT", EC: "RUC", PE: "RUC", PA: "RUC", HN: "RTN" }
 
+// Nombres para la respuesta al usuario (HU-1): país del cliente y formato de salida.
+export const PAISES_NOMBRE: Readonly<Record<string, string>> = { CO: "Colombia", EC: "Ecuador", PE: "Perú", PA: "Panamá", HN: "Honduras" }
+export const FORMATOS_NOMBRE: Readonly<Record<string, string>> = { xlsx: "Excel", pdf: "PDF", portal: "portal (valores para copiar)" }
+
 // HU-1: etiquetas tributarias genéricas que no indican el país; siempre requieren confirmación.
 export const ETIQUETAS_TRIBUTARIAS_AMBIGUAS = ["Identificación tributaria", "Número de identificación fiscal"] as const
 

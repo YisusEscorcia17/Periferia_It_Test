@@ -117,7 +117,7 @@ Separación que evaluamos:
 
 | Historia / regla | Estado | Qué falta para producción |
 |---|---|---|
-| HU-1 Leer la solicitud | Hecho | — |
+| HU-1 Leer la solicitud | Hecho | Al leer la solicitud, la primera línea de la respuesta dice caso, cliente, país y formato. Si el modelo no lo dice, el servidor antepone esa línea con los datos de la herramienta. |
 | HU-2 Mapear campos al maestro | Hecho | Confianza: ≥ 0.8 llena (coincidencia exacta o normalizada, o similitud ≥ 0.8); entre 0.5 y 0.8 pide confirmación con sugerencia; < 0.5 es faltante. Sin confianza, nunca se inventa. |
 | HU-3 P0 Excel (`formulario.xlsx`) | Hecho | — |
 | HU-3 P1 PDF (`formulario.pdf`) | Hecho | — |
