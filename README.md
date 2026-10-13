@@ -101,11 +101,39 @@ fixtures/                        casos y repositorio (solo lectura)
 demo.ts                          herramientas sin modelo
 ```
 
-## Docker
+## Docker (paso a paso)
+
+Prerrequisitos: Docker Desktop en ejecución y tu clave de Anthropic.
 
 ```bash
-docker compose up --build    # lee .env; la clave no entra en la imagen (ver .dockerignore)
+# 1. Entra al proyecto (recién descargado o clonado)
+cd reto-01
+
+# 2. Crea tu .env desde el ejemplo (solo la primera vez)
+cp .env.example .env        # en Windows: copy .env.example .env
+# edita .env y pon tu clave: ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Construye y levanta front + backend en un solo contenedor
+docker compose up --build
+# lee .env; la clave no entra en la imagen (ver .dockerignore)
+
+# 4. Abre en el navegador
+# http://localhost:3000
+# Salud: http://localhost:3000/api/health -> {"ok":true,"provider":"anthropic",...}
+
+# 5. Prueba en el chat
+# Escribe: Procesa el caso "ec-corp-andina". No envíes nada todavía.
+
+# 6. Ver logs / parar
+docker compose logs -f      # ver qué hace el servidor
+docker compose down         # detener y borrar el contenedor (out/ local se conserva)
 ```
+
+Notas:
+- La salida generada queda en `./out/` local por el volumen `./out:/app/out` del compose.
+- Para probar sin gastar clave usa `LLM_DISABLED=true` en `.env` y vuelve a levantar.
+- Si el puerto 3000 está ocupado, cambia el mapeo en `docker-compose.yml` a `"3001:3000"` y abre `http://localhost:3001`.
+- Si cambias `PORT` en `.env`, ajusta el mismo mapeo.
 
 Probado: la imagen se construye, arranca, sirve `/api/health` y el front, y no incluye `.env` ni `node_modules` del equipo.
 
